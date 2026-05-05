@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import ContractCaller from './components/ContractCaller';
+import IssuerPanel from './components/IssuerPanel';
 import VerifyCredential from './components/VerifyCredential';
 import DegreeSharing from './components/DegreeSharing';
 import AuditTrail from './components/AuditTrail';
@@ -11,12 +11,11 @@ import ProblemSolution from './components/ProblemSolution';
 import MarketImpact from './components/MarketImpact';
 import PremiumFooter from './components/PremiumFooter';
 import DemoTour from './components/DemoTour';
-import { peraWallet } from './services/WalletService';
-import { Shield, Zap, Mail, History, Lock, Eye, ChevronRight, CircleCheck, CircleAlert, UserCheck } from 'lucide-react';
+import { Shield, Zap, Mail, History, Eye, CircleCheck, UserCheck, Lock } from 'lucide-react';
 import './index.css';
 
 // ─────────────────────────────────────────
-//  MOCK SEED DATA
+//  MOCK SEED DATA  (mirrors backend seed)
 // ─────────────────────────────────────────
 const MOCK_STUDENTS = [
     { id: 'S001', name: 'Ravi Kumar', email: 'ravi@campusvault.ai', batch: '2021–2025', dept: 'Computer Science' },
@@ -37,6 +36,10 @@ const DEMO_RECRUITER_EMAIL = import.meta.env.VITE_DEMO_RECRUITER || 'hr@campusva
 const DEMO_OTP = import.meta.env.VITE_DEMO_OTP || '123456';
 const DEMO_EMAIL = import.meta.env.VITE_DEMO_STUDENT || 'ravi@campusvault.ai';
 
+// Hardcoded admin credentials for demo (Authority role)
+const ADMIN_USER = 'admin';
+const ADMIN_PASS = 'admin123';
+
 // ─────────────────────────────────────────
 //  APP
 // ─────────────────────────────────────────
@@ -47,13 +50,17 @@ function App() {
 
     const [students] = useState(MOCK_STUDENTS);
     const [claims, setClaims] = useState(MOCK_CLAIMS);
-    const [issuers] = useState([]); // Empty or removed whitelist
     const [currentStudent, setCurrentStudent] = useState(null);
     const [auditLog, setAuditLog] = useState([
-        { action: 'INITIALIZE', metadata: 'System booted', timestamp: new Date().toLocaleString() }
+        { action: 'INITIALIZE', metadata: 'System booted — cryptographic mode (no blockchain)', timestamp: new Date().toLocaleString() }
     ]);
 
-    // OTP Login State — split by role to prevent cross-bleed
+    // Admin login state
+    const [adminUser, setAdminUser] = useState('');
+    const [adminPass, setAdminPass] = useState('');
+    const [adminError, setAdminError] = useState('');
+
+    // OTP Login State
     const [studentEmail, setStudentEmail] = useState('');
     const [studentOtp, setStudentOtp] = useState(['', '', '', '', '', '']);
     const [studentOtpSent, setStudentOtpSent] = useState(false);
@@ -64,30 +71,27 @@ function App() {
     const [verifierOtpSent, setVerifierOtpSent] = useState(false);
     const [verifierSending, setVerifierSending] = useState(false);
 
-    // Session Restoration
-    useEffect(() => {
-        peraWallet.reconnectSession().then((accounts) => {
-            if (accounts.length > 0) {
-                // We don't necessarily know the role here, so we don't auto-login 
-                // but at least the session is active and won't crash on .connect()
-                console.log('Restored Pera Session:', accounts[0]);
-                // Optional: Listen for disconnect
-                peraWallet.connector?.on('disconnect', handleDisconnect);
-            }
-        }).catch(() => { });
-    }, []);
-
     const addAuditEntry = (action, metadata) => {
         setAuditLog(prev => [{ action, metadata, timestamp: new Date().toLocaleString() }, ...prev]);
     };
 
     const resetAuth = () => {
-        setStudentEmail('');
-        setStudentOtp(['', '', '', '', '', '']);
-        setStudentOtpSent(false);
-        setVerifierEmail('');
-        setVerifierOtp(['', '', '', '', '', '']);
-        setVerifierOtpSent(false);
+        setStudentEmail(''); setStudentOtp(['', '', '', '', '', '']); setStudentOtpSent(false);
+        setVerifierEmail(''); setVerifierOtp(['', '', '', '', '', '']); setVerifierOtpSent(false);
+        setAdminUser(''); setAdminPass(''); setAdminError('');
+    };
+
+    // ── Admin Login ──
+    const handleAdminLogin = () => {
+        if (adminUser === ADMIN_USER && adminPass === ADMIN_PASS) {
+            setAddress('admin@rapidauth.system');
+            setUserRole('issuer');
+            setStep(1);
+            addAuditEntry('LOGIN', 'Authority logged in via admin credentials');
+            setAdminError('');
+        } else {
+            setAdminError('Invalid credentials. Use admin / admin123');
+        }
     };
 
     // ── Send OTP ──
@@ -133,7 +137,6 @@ function App() {
             alert(`Invalid OTP.\n\n💡 Use: ${DEMO_OTP}`);
             return;
         }
-
         if (role === 'student') {
             const student = students.find(s => s.email.toLowerCase() === email.toLowerCase());
             if (student) {
@@ -151,36 +154,9 @@ function App() {
         }
     };
 
-    // ── Pera Wallet Connect (for Issuer / Verifier) ──
-    const connectPera = async (role) => {
-        try {
-            const accounts = await peraWallet.connect();
-            if (accounts.length > 0) {
-                setAddress(accounts[0]);
-                setUserRole(role);
-                setStep(1);
-                addAuditEntry('LOGIN', `${role.toUpperCase()} connected via Pera Wallet: ${accounts[0].slice(0, 8)}...`);
-            }
-        } catch (err) {
-            if (err.message?.includes('Session currently connected')) {
-                // Fallback: if somehow a session is live but connect() was called
-                const accounts = await peraWallet.reconnectSession();
-                if (accounts.length > 0) {
-                    setAddress(accounts[0]);
-                    setUserRole(role);
-                    setStep(1);
-                }
-            } else {
-                console.error('Pera connect failed:', err);
-                alert('⚠️ Could not connect to Pera Wallet.');
-            }
-        }
-    };
-
     // ── Disconnect ──
     const handleDisconnect = () => {
         addAuditEntry('LOGOUT', `User ${address} disconnected`);
-        try { peraWallet.disconnect(); } catch (e) { }
         setAddress('');
         setUserRole('');
         setCurrentStudent(null);
@@ -189,7 +165,7 @@ function App() {
 
     // ── Data handlers ──
     const handleClaimIssued = (newClaim) => {
-        const id = `C${Date.now()}`;
+        const id = newClaim.verificationId || `C${Date.now()}`;
         setClaims(prev => {
             const newObj = {
                 ...newClaim,
@@ -198,19 +174,15 @@ function App() {
                 visible: true,
                 revocationReason: null,
                 previousVersion: newClaim.previousVersion || null,
-                nextVersion: null
+                nextVersion: null,
             };
-
             if (newClaim.previousVersion) {
-                // Supersede the old one
                 const updated = prev.map(c => c.id === newClaim.previousVersion ? { ...c, status: 'superseded', nextVersion: id } : c);
                 return [newObj, ...updated];
             }
             return [newObj, ...prev];
         });
-
-        const typeLabel = newClaim.previousVersion ? 'REVISION' : 'MINT';
-        addAuditEntry(typeLabel, `${typeLabel}: ${newClaim.type} for Student ${newClaim.studentId} ${newClaim.previousVersion ? `(Replaces ${newClaim.previousVersion})` : ''}`);
+        addAuditEntry('ISSUE', `${newClaim.type} issued to Student ${newClaim.studentId}`);
     };
 
     const handleToggleVisibility = (claimId) => {
@@ -221,11 +193,8 @@ function App() {
 
     const handleRevoke = (claimId, reason = 'Administrative Action') => {
         setClaims(prev => prev.map(c => c.id === claimId ? {
-            ...c,
-            status: 'revoked',
-            revocationReason: reason,
-            revokedAt: new Date().toLocaleString(),
-            revokedBy: address
+            ...c, status: 'revoked', revocationReason: reason,
+            revokedAt: new Date().toLocaleString(), revokedBy: address,
         } : c));
         addAuditEntry('REVOKE', `Claim ${claimId} revoked. Reason: ${reason}`);
     };
@@ -234,14 +203,7 @@ function App() {
         const newId = `C${Date.now()}`;
         setClaims(prev => {
             const updated = prev.map(c => c.id === oldClaimId ? { ...c, status: 'superseded', nextVersion: newId } : c);
-            return [{
-                ...newClaimData,
-                id: newId,
-                status: 'active',
-                visible: true,
-                previousVersion: oldClaimId,
-                nextVersion: null
-            }, ...updated];
+            return [{ ...newClaimData, id: newId, status: 'active', visible: true, previousVersion: oldClaimId, nextVersion: null }, ...updated];
         });
         addAuditEntry('SUPERSEDE', `Claim ${oldClaimId} replaced by ${newId}`);
     };
@@ -251,16 +213,18 @@ function App() {
             <header className="cv-header">
                 <div className="cv-logo-group">
                     <Shield size={32} color="var(--cv-primary)" />
-                    <h2 className="text-gradient">RapidAuth <span className="cv-tag">Testnet</span></h2>
+                    <h2 className="text-gradient">RapidAuth <span className="cv-tag">Secure</span></h2>
                 </div>
                 {address && (
                     <div className="cv-header-right">
                         <div className="cv-user-profile">
                             <span className="cv-user-name">
-                                {currentStudent ? currentStudent.name : `${address.slice(0, 6)}...${address.slice(-4)}`}
+                                {currentStudent ? currentStudent.name : address.includes('@') ? address.split('@')[0] : `${address.slice(0, 6)}…`}
                             </span>
-                            <span className="cv-role-badge">{userRole === 'issuer' ? '🏛️ Authority' : userRole === 'student' ? '🎓 Student' : '🔍 Recruiter'}</span>
-                            <button className={`cv-btn-ghost ${((userRole === 'issuer' && claims.length > MOCK_CLAIMS.length) || (userRole === 'student' && step === 3)) ? 'cv-tour-pulse' : ''}`} onClick={handleDisconnect}>Disconnect</button>
+                            <span className="cv-role-badge">
+                                {userRole === 'issuer' ? '🏛️ Authority' : userRole === 'student' ? '🎓 Student' : '🔍 Recruiter'}
+                            </span>
+                            <button className="cv-btn-ghost" onClick={handleDisconnect}>Disconnect</button>
                         </div>
                     </div>
                 )}
@@ -271,48 +235,72 @@ function App() {
             <main className="cv-main">
                 {!address ? (
                     <div className="cv-portal-wrap">
-                        {/* HERO SECTION */}
+                        {/* HERO */}
                         <div className="cv-portal-hero" style={{ textAlign: 'center', marginBottom: '4rem' }}>
-                            <div className="cv-problem-badge">🛡️ ZERO-TRUST ARCHITECTURE</div>
+                            <div className="cv-problem-badge">🔐 CRYPTOGRAPHIC VERIFICATION</div>
                             <h1 className="text-gradient" style={{ fontSize: '3.5rem', lineHeight: '1.1', marginBottom: '1.5rem' }}>
-                                RapidAuth: Immutable<br />Academic Trust
+                                RapidAuth: Secure<br />Document Integrity
                             </h1>
                             <p className="cv-hero-sub" style={{ fontSize: '1.2rem', opacity: '0.8' }}>
-                                Beyond certificates. We're building a source-of-truth ecosystem on
-                                <strong> Algorand</strong> where credentials are tamper-proof,
-                                instantly verifiable, and user-controlled.
+                                Instant, tamper-proof academic credential verification using
+                                <strong> SHA-256 hashing</strong> and <strong>digital signatures</strong> — no blockchain required.
                             </p>
                         </div>
 
-                        {/* AUTHENTICATION CARDS */}
+                        {/* AUTH CARDS */}
                         <div className="cv-role-grid">
                             {/* Card 1: Authority */}
-                            <div className={`cv-role-card ${(!address && !(studentOtpSent || verifierOtpSent)) ? 'cv-tour-pulse' : ''}`}>
-                                <div className="cv-step-label">MINT</div>
-                                <div className="cv-role-icon"><div style={{ background: 'rgba(99, 102, 241, 0.1)', color: 'var(--cv-primary)', width: '60px', height: '60px', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto' }}><History size={32} /></div></div>
+                            <div className="cv-role-card">
+                                <div className="cv-step-label">ISSUE</div>
+                                <div className="cv-role-icon">
+                                    <div style={{ background: 'rgba(99,102,241,0.1)', color: 'var(--cv-primary)', width: '60px', height: '60px', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto' }}>
+                                        <Lock size={32} />
+                                    </div>
+                                </div>
                                 <h3>University Authority</h3>
-                                <p>Issue verifiable claims directly to the ledger. Manage lifecycle with full revocation & versioning.</p>
-                                <button className="cv-btn-primary" onClick={() => connectPera('issuer')}>
-                                    🔗 Connect Pera Wallet
-                                </button>
+                                <p>Issue digitally signed credentials. Manage document lifecycle with full revocation support.</p>
+
+                                <div className="cv-otp-section" style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                                    <input
+                                        className="cv-input"
+                                        type="text"
+                                        placeholder="Username"
+                                        value={adminUser}
+                                        onChange={e => { setAdminUser(e.target.value); setAdminError(''); }}
+                                        onKeyDown={e => e.key === 'Enter' && handleAdminLogin()}
+                                    />
+                                    <input
+                                        className="cv-input"
+                                        type="password"
+                                        placeholder="Password"
+                                        value={adminPass}
+                                        onChange={e => { setAdminPass(e.target.value); setAdminError(''); }}
+                                        onKeyDown={e => e.key === 'Enter' && handleAdminLogin()}
+                                    />
+                                    <button className="cv-btn-primary" onClick={handleAdminLogin}>
+                                        🔑 Login as Authority
+                                    </button>
+                                    {adminError && <div style={{ color: '#ef4444', fontSize: '0.8rem', textAlign: 'center' }}>{adminError}</div>}
+                                    <div className="cv-demo-hint" style={{ fontWeight: 700, color: 'var(--cv-primary)' }}>
+                                        💡 USE: <code>admin</code> / <code>admin123</code>
+                                    </div>
+                                </div>
                             </div>
 
                             {/* Card 2: Student */}
                             <div className="cv-role-card cv-role-card-highlight">
                                 <div className="cv-step-label">CONTROL</div>
-                                <div className="cv-role-icon"><div style={{ background: 'rgba(99, 102, 241, 0.1)', color: 'var(--cv-primary)', width: '60px', height: '60px', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto' }}><UserCheck size={32} /></div></div>
+                                <div className="cv-role-icon">
+                                    <div style={{ background: 'rgba(99,102,241,0.1)', color: 'var(--cv-primary)', width: '60px', height: '60px', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto' }}>
+                                        <UserCheck size={32} />
+                                    </div>
+                                </div>
                                 <h3>Student Identity Vault</h3>
-                                <p>Manage your academic identity. Share via QR or secure Email links with one-click revocation.</p>
+                                <p>Manage your academic identity. Share via QR or secure email links with one-click revocation.</p>
 
                                 {!studentOtpSent ? (
                                     <div className="cv-otp-section">
-                                        <input
-                                            className="cv-input"
-                                            type="email"
-                                            placeholder="Institutional Email"
-                                            value={studentEmail}
-                                            onChange={e => setStudentEmail(e.target.value)}
-                                        />
+                                        <input className="cv-input" type="email" placeholder="Institutional Email" value={studentEmail} onChange={e => setStudentEmail(e.target.value)} />
                                         <button className="cv-btn-primary" onClick={() => handleSendOtp('student')} disabled={studentSending}>
                                             {studentSending ? 'Sending...' : '📧 Send OTP'}
                                         </button>
@@ -322,12 +310,7 @@ function App() {
                                     <div className="cv-otp-section">
                                         <div className="cv-otp-inputs">
                                             {studentOtp.map((digit, i) => (
-                                                <input
-                                                    key={i} id={`otp-s-${i}`}
-                                                    className="cv-otp-digit"
-                                                    value={digit}
-                                                    onChange={e => handleOtpChange(i, e.target.value, 'student')}
-                                                />
+                                                <input key={i} id={`otp-s-${i}`} className="cv-otp-digit" value={digit} onChange={e => handleOtpChange(i, e.target.value, 'student')} />
                                             ))}
                                         </div>
                                         <button className="cv-btn-primary" onClick={() => handleVerifyOtp('student')}>🔓 Enter Vault</button>
@@ -339,19 +322,17 @@ function App() {
                             {/* Card 3: Recruiter */}
                             <div className="cv-role-card">
                                 <div className="cv-step-label">VERIFY</div>
-                                <div className="cv-role-icon"><div style={{ background: 'rgba(99, 102, 241, 0.1)', color: 'var(--cv-primary)', width: '60px', height: '60px', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto' }}><CircleCheck size={32} /></div></div>
+                                <div className="cv-role-icon">
+                                    <div style={{ background: 'rgba(99,102,241,0.1)', color: 'var(--cv-primary)', width: '60px', height: '60px', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto' }}>
+                                        <CircleCheck size={32} />
+                                    </div>
+                                </div>
                                 <h3>Verification Gateway</h3>
-                                <p>Recruiters verify candidates instantly via QR or Magic Links. Zero manual verification needed.</p>
+                                <p>Instantly verify candidate credentials via verification ID or QR. Zero manual checks needed.</p>
 
                                 {!verifierOtpSent ? (
                                     <div className="cv-otp-section">
-                                        <input
-                                            className="cv-input"
-                                            type="email"
-                                            placeholder="Recruiter Email"
-                                            value={verifierEmail}
-                                            onChange={e => setVerifierEmail(e.target.value)}
-                                        />
+                                        <input className="cv-input" type="email" placeholder="Recruiter Email" value={verifierEmail} onChange={e => setVerifierEmail(e.target.value)} />
                                         <button className="cv-btn-primary" onClick={() => handleSendOtp('verifier')} disabled={verifierSending}>
                                             {verifierSending ? 'Sending...' : '📧 Send OTP'}
                                         </button>
@@ -361,12 +342,7 @@ function App() {
                                     <div className="cv-otp-section">
                                         <div className="cv-otp-inputs">
                                             {verifierOtp.map((digit, i) => (
-                                                <input
-                                                    key={i} id={`otp-v-${i}`}
-                                                    className="cv-otp-digit"
-                                                    value={digit}
-                                                    onChange={e => handleOtpChange(i, e.target.value, 'verifier')}
-                                                />
+                                                <input key={i} id={`otp-v-${i}`} className="cv-otp-digit" value={digit} onChange={e => handleOtpChange(i, e.target.value, 'verifier')} />
                                             ))}
                                         </div>
                                         <button className="cv-btn-primary" onClick={() => handleVerifyOtp('verifier')}>🔓 Access Gateway</button>
@@ -376,7 +352,7 @@ function App() {
                             </div>
                         </div>
 
-                        {/* LANDING PAGE SECTIONS */}
+                        {/* LANDING SECTIONS */}
                         <ProblemSolution />
                         <FlowExplanation />
                         <MarketImpact />
@@ -387,7 +363,7 @@ function App() {
                     <div className="cv-dashboard">
                         <aside className="cv-sidebar">
                             <div className="cv-logo" style={{ padding: '0 1rem', marginBottom: '2rem' }}>
-                                <Shield size={28} className="cv-tour-focus-1" />
+                                <Shield size={28} />
                                 <span style={{ fontSize: '1.25rem', fontWeight: '800' }}>RapidAuth</span>
                             </div>
 
@@ -398,7 +374,7 @@ function App() {
                             <div className="cv-nav-group">
                                 {userRole === 'issuer' && (
                                     <>
-                                        <button className={`cv-sidebar-btn ${step === 1 ? 'active' : ''}`} onClick={() => setStep(1)}>Issue Claim</button>
+                                        <button className={`cv-sidebar-btn ${step === 1 ? 'active' : ''}`} onClick={() => setStep(1)}>Issue Credential</button>
                                         <button className={`cv-sidebar-btn ${step === 2 ? 'active' : ''}`} onClick={() => setStep(2)}>History Log</button>
                                     </>
                                 )}
@@ -411,7 +387,7 @@ function App() {
                                 )}
                                 {userRole === 'verifier' && (
                                     <>
-                                        <button className={`cv-sidebar-btn ${step === 1 ? 'active' : ''}`} onClick={() => setStep(1)}><Shield size={18} /> Verify Proof</button>
+                                        <button className={`cv-sidebar-btn ${step === 1 ? 'active' : ''}`} onClick={() => setStep(1)}><Shield size={18} /> Verify Credential</button>
                                         <button className={`cv-sidebar-btn ${step === 2 ? 'active' : ''}`} onClick={() => setStep(2)}><History size={18} /> Audit Log</button>
                                     </>
                                 )}
@@ -421,7 +397,7 @@ function App() {
                         <div className="cv-content">
                             {userRole === 'issuer' && (
                                 <>
-                                    {step === 1 && <ContractCaller address={address} students={students} onClaimIssued={handleClaimIssued} issuers={issuers} claims={claims} onRevoke={handleRevoke} />}
+                                    {step === 1 && <IssuerPanel address={address} students={students} onClaimIssued={handleClaimIssued} claims={claims} onRevoke={handleRevoke} />}
                                     {step === 2 && <AuditTrail claims={claims} onRevoke={handleRevoke} onSupersede={handleSupersede} students={students} address={address} />}
                                 </>
                             )}
@@ -440,7 +416,7 @@ function App() {
                                     {step === 2 && (
                                         <div className="cv-card">
                                             <h3>📜 Verification Audit Log</h3>
-                                            <p className="cv-hint">Real-time trail of verification events on the Algorand network.</p>
+                                            <p className="cv-hint">Real-time trail of all verification and issuance events.</p>
                                             <div style={{ marginTop: '1.5rem' }}>
                                                 {auditLog.map((log, i) => (
                                                     <div key={i} className="cv-audit-entry" style={{ padding: '1rem', border: '1px solid var(--cv-border)', borderRadius: '12px', marginBottom: '0.75rem' }}>
@@ -458,8 +434,7 @@ function App() {
                             )}
                         </div>
                     </div>
-                )
-                }
+                )}
             </main>
         </div>
     );

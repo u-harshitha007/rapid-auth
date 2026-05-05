@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { History, CircleAlert } from 'lucide-react';
+import { History, CircleAlert, Search } from 'lucide-react';
 
 const AuditTrail = ({ claims, students, onRevoke, onSupersede, address }) => {
     const [filter, setFilter] = useState('all');
@@ -32,8 +32,8 @@ const AuditTrail = ({ claims, students, onRevoke, onSupersede, address }) => {
                         <History size={20} />
                     </div>
                     <div>
-                        <h2 style={{ margin: 0 }}>📜 NFT Lifecycle Explorer</h2>
-                        <p className="cv-hint" style={{ margin: 0 }}>Cryptographic audit trail of all minted academic assets on Algorand.</p>
+                        <h2 style={{ margin: 0 }}>📜 Credential Lifecycle Explorer</h2>
+                        <p className="cv-hint" style={{ margin: 0 }}>Cryptographic audit trail of all issued, revoked, and updated credentials.</p>
                     </div>
                 </div>
             </div>
@@ -136,7 +136,7 @@ const AuditTrail = ({ claims, students, onRevoke, onSupersede, address }) => {
                 </div>
                 <div className="cv-stat">
                     <div style={{ fontSize: '1.5rem', fontWeight: '700', color: 'var(--cv-primary)' }}>{claims.filter(c => c.status === 'active').length}</div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--cv-text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Current Active NFTs</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--cv-text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Currently Active</div>
                 </div>
             </div>
         </div>
