@@ -227,6 +227,14 @@ app.get('/api/audit', (req, res) => {
 app.use('/api/v1', require('./global-api/routes'));
 
 // ─────────────────────────────────────────────────────────
+// OFFLINE VERIFICATION  (public — no auth required)
+// Isolated in ./offline-verification/
+// POST /api/v1/offline/proof/:credentialId — generate signed proof token
+// POST /api/v1/offline/verify              — verify proof token locally
+// ─────────────────────────────────────────────────────────
+app.use('/api/v1/offline', require('./offline-verification/routes'));
+
+// ─────────────────────────────────────────────────────────
 // SEED some demo data on startup
 // ─────────────────────────────────────────────────────────
 function seedDemo() {
