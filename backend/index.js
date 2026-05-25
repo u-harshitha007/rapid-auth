@@ -54,6 +54,44 @@ function sign(payload) {
 }
 
 // ─────────────────────────────────────────────────────────
+// FIRESTORE — optional, used by global-api/ routes
+// Initialised here so the same instance is shared via app.locals.
+// Falls back to in-memory store if FIREBASE_PROJECT_ID is not set.
+// ─────────────────────────────────────────────────────────
+let firestoreDb = null;
+
+(function initFirebase() {
+    const { FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY } = process.env;
+    if (!FIREBASE_PROJECT_ID) return; // no config — stay in demo mode
+
+    try {
+        const admin = require('firebase-admin');
+        if (!admin.apps.length) {
+            admin.initializeApp({
+                credential: admin.credential.cert({
+                    projectId: FIREBASE_PROJECT_ID,
+                    clientEmail: FIREBASE_CLIENT_EMAIL,
+                    // env vars store \n as literal backslash-n — restore real newlines
+                    privateKey: FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+                }),
+            });
+        }
+        firestoreDb = admin.firestore();
+        console.log('✅ Firestore connected');
+    } catch (err) {
+        console.warn('⚠️  Firestore init failed:', err.message, '— using in-memory fallback');
+    }
+})();
+
+// ─────────────────────────────────────────────────────────
+// app.locals — shared state for global-api/ router
+// controller.js reads these to avoid circular imports.
+// ─────────────────────────────────────────────────────────
+app.locals.firestoreDb = firestoreDb;  // Firestore instance or null
+app.locals.credentials = credentials; // in-memory store reference
+app.locals.addAudit    = addAudit;     // audit log helper
+
+// ─────────────────────────────────────────────────────────
 // ROUTES
 // ─────────────────────────────────────────────────────────
 
@@ -181,6 +219,12 @@ app.get('/api/credentials', (req, res) => {
 app.get('/api/audit', (req, res) => {
     res.json(auditLog);
 });
+
+// ─────────────────────────────────────────────────────────
+// GLOBAL VERIFICATION API  (public — no auth required)
+// Isolated in ./global-api/ — routes, controller, service, utils
+// ─────────────────────────────────────────────────────────
+app.use('/api/v1', require('./global-api/routes'));
 
 // ─────────────────────────────────────────────────────────
 // SEED some demo data on startup

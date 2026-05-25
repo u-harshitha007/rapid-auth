@@ -3,10 +3,13 @@
   "version": "2.0.0",
   "private": true,
   "dependencies": {
+    "@perawallet/connect": "^1.5.2",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^13.5.0",
+    "algosdk": "^2.11.0",
+    "firebase": "^10.14.1",
     "html5-qrcode": "^2.3.8",
     "lucide-react": "^0.575.0",
     "qrcode.react": "^4.2.0",
