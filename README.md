@@ -1,204 +1,171 @@
-<h1 align="center">
-  RapidAuth: Secure Document Integrity System
-</h1>
+# VeriChain: Blockchain-Powered Educational Credential Verification Platform
 
-# 📌 Project Description
+##  Project Description
 
-RapidAuth is a secure, centralized digital credential verification platform that enables educational institutions to issue tamper-resistant, instantly verifiable academic documents.
+VeriChain is a secure educational credential ecosystem designed to eliminate academic fraud, manual verification delays, and document forgery through blockchain-powered trust and intelligent verification.
 
-Instead of blockchain, the system uses:
-- **SHA-256 hashing** for document integrity
-- **HMAC-SHA256 digital signatures** for issuer authenticity
-- **Unique verification IDs** for each credential
-- **QR codes & magic links** for easy sharing
-- **Audit logs** for complete transparency
+The platform enables educational institutions to issue tamper-proof digital credentials that can be instantly verified by students, recruiters, universities, and external platforms.
 
-It creates a unified system for the entire document lifecycle:
-- Issuance
-- Student control
-- Verification
-- Revocation
-- Audit
+VeriChain combines:
 
-Across all college-issued credentials.
+* Blockchain-secured credential records
+* AI-powered fake certificate detection
+* Global Credential Verification APIs
+* Offline QR-based verification
+* Student credential wallet
+* Credential lifecycle management (issue, update, revoke, verify)
+
+The system creates a trusted and scalable infrastructure for academic credentials, replacing traditional PDF-based verification workflows.
 
 ---
 
-# 🚨 The Problem
+## The Problem
 
-Educational institutions face a credential crisis:
+Educational institutions and recruiters face a growing credential verification crisis:
 
-- Students wait days for simple documents like NOCs and bonafide certificates.
-- Recruiters spend weeks verifying marksheets and internship proofs.
-- 68% of recruiters admit they cannot verify every document thoroughly.
-- Fake documents cost Indian companies an estimated ₹1,200 crore annually.
-- College staff spend 40–50% of their time handling verification requests.
-
-### ❌ Existing Solutions Fail
-
-- DigiLocker excludes dynamic college-level issuance.
-- Academic ERPs lack external verification capability.
-- Most systems focus only on degrees.
-- NOCs, LORs, internships, and achievement certificates are ignored.
+* Fake certificates and forged academic records are increasing globally.
+* Students wait days or weeks for document issuance and verification.
+* Recruiters spend significant time manually verifying credentials.
+* Verification often relies on emails, phone calls, and institution approvals.
+* Existing systems focus on document storage rather than trust and authenticity.
 
 ---
 
-# 🌐 Live Demo URL
+## ❌ Existing Solutions Fail
 
-https://rapid-auth-two.vercel.app/
+### DigiLocker
 
----
+* Limited support for dynamic institution-issued credentials.
+* Not designed for real-time recruiter verification.
 
-# 💡 Solution (Without Blockchain)
+### Traditional College ERPs
 
-RapidAuth replaces blockchain with a secure cryptographic verification engine:
+* Verification remains restricted within individual institutions.
+* Lack external interoperability.
 
-### 🔹 1. Digital Issuance System
-- Colleges log in as Authority (admin/admin123)
-- Each document is:
-  - SHA-256 hashed from its content
-  - HMAC-signed using the institutional secret key
-  - Assigned a unique **Verification ID** (UUID)
+### PDF-Based Credential Systems
 
-### 🔹 2. Student Dashboard
-- Students log in with college email + OTP (no wallet required)
-- Can view/download documents
-- Control access (public/private per document)
-- Share via QR code or secure magic link
-
-### 🔹 3. Instant Verification Portal
-- Recruiters enter the Verification ID or scan QR
-- System checks:
-  - Document hash integrity (re-computes SHA-256)
-  - Issuing authority
-  - Current status (active / revoked / superseded)
-- Shows: ✅ **Verified** / ⚠️ **Tampered** / 🔴 **Revoked**
-
-### 🔹 4. Revocation System
-- Colleges can revoke credentials with a mandatory reason
-- Status updates instantly across the system
-
-### 🔹 5. Audit & Logs
-- Every action tracked: who issued, who accessed, when verified
+* Documents can be edited, manipulated, and duplicated.
+* Verification remains manual and time-consuming.
 
 ---
 
-# 🏗 Architecture Overview
+## The Solution
 
-RapidAuth uses a hybrid architecture combining a **Node.js/Express backend** (cryptographic engine), **in-memory credential store**, and a **React frontend**.
+VeriChain transforms academic credentials into trusted, verifiable digital assets.
 
-```
-Frontend (React/Vite)    Backend (Node/Express)
-─────────────────────    ──────────────────────
-IssuerPanel        ──▶  POST /api/issue
-                         SHA-256 hash + HMAC sign
-                   ◀──  verificationId + hash
+### Digital Credential Issuance
 
-VerifyCredential   ──▶  GET /api/verify/:id
-                         Re-compute hash, compare
-                   ◀──  VERIFIED / TAMPERED / REVOKED
+* Institutions issue digitally signed credentials.
+* Credential metadata is anchored on blockchain.
+* Files are securely stored using decentralized storage.
 
-AuditTrail         ──▶  GET /api/audit
-```
+### Student Credential Wallet
+
+* Students manage and share credentials securely.
+* Access control and credential visibility settings.
+* QR and secure sharing mechanisms.
+
+### Employer & Institution Verification Portal
+
+* Instant credential verification.
+* QR-based validation.
+* Real-time credential status checking.
+
+### AI Fake Certificate Detection
+
+* OCR-based document analysis.
+* Metadata consistency validation.
+* Fraud score generation.
+* Detection of suspicious or manipulated credentials.
+
+### Global Credential Verification API
+
+* Allows recruiters, universities, and external systems to verify credentials programmatically.
+* Standardized verification endpoints.
+* Instant verification without manual intervention.
+
+### Offline Verification
+
+* Verification using digitally signed QR tokens.
+* Works even without internet connectivity.
+* Ideal for low-resource environments.
 
 ---
 
-# 🛠 Tech Stack
+##  Key Innovations
+
+* End-to-end credential lifecycle management
+* Blockchain-secured trust layer
+* AI-powered fraud detection
+* Global verification APIs
+* Offline verification support
+* Cross-university interoperability
+
+---
+
+## Architecture
+
+Institution Portal
+↓
+Credential Issuance Engine
+↓
+Blockchain Trust Layer
+↓
+IPFS / Secure Storage
+↓
+Student Credential Wallet
+↓
+Verification Engine
+↓
+Recruiters • Universities • External Platforms
+
+Additional Modules:
+
+* AI Fake Certificate Detection
+* Global Verification API
+* Offline Verification Engine
+
+---
+
+##  Tech Stack
 
 ### Frontend
-- React + Vite
+
+* React.js
+* Tailwind CSS
 
 ### Backend
-- Node.js + Express
-- Built-in `crypto` module (SHA-256, HMAC-SHA256)
 
-### Security
-- SHA-256 document hashing
-- HMAC-SHA256 institutional signing
-- JWT-style time-bound QR/magic link tokens
-- Email + OTP authentication for students/recruiters
+* Node.js
+* Express.js
+
+### Blockchain
+
+* Algorand
 
 ### Storage
-- In-memory (demo) — easily swappable to MongoDB/Firebase
+
+* IPFS
+* Firebase / PostgreSQL
+
+### AI Layer
+
+* OCR
+* Machine Learning-based Fraud Detection
+
+### Verification
+
+* QR Verification
+* Global Verification API
+* Offline Signature Validation
 
 ---
 
-# ⚙ Installation & Setup
+##  Future Scope
 
-## ✅ Prerequisites
-- Node.js (v18+)
-- Git
-
-## 🚀 Installation Steps
-
-### 1. Clone the repository
-```bash
-git clone <repo-url>
-cd RapidAuth
-```
-
-### 2. Start Backend
-```bash
-cd backend
-npm install
-npm start
-# Runs on http://localhost:4001
-```
-
-### 3. Start Frontend
-```bash
-cd frontend
-npm install
-npm run dev
-# Runs on http://localhost:5173
-```
-
----
-
-## 👥 Demo Credentials
-
-### 🏛 Authority (Issuer)
-- Username: `admin`
-- Password: `admin123`
-
-### 🎓 Student
-- Email: `ravi@campusvault.ai`
-- OTP: `123456`
-
-### 🏢 Recruiter
-- Email: `hr@campusvault.ai`
-- OTP: `123456`
-
----
-
-# 📖 Usage Guide
-
-1. **Start as University Authority** — Login with `admin / admin123`
-2. **Issue a credential** — Select student, doc type, fill in value, click Sign & Issue
-3. **Copy the Verification ID** — shown after issuance
-4. **As a Student** — Login with OTP, view credentials, share via QR or email link
-5. **As a Recruiter** — Login with OTP, paste Verification ID → see hash integrity check + status
-
----
-
-# ⚠ Known Limitations
-
-### 1. Email Service Simulation
-OTP and magic links are simulated (console logs only).
-**Resolution:** Integrate SendGrid or AWS SES.
-
-### 2. Data Persistence
-In-memory store resets on server restart.
-**Resolution:** MongoDB or Firebase integration.
-
-### 3. Rate Limiting
-Basic rate limiting only.
-**Resolution:** Redis-based production throttling.
-
-### 4. Mobile Responsiveness
-Dashboard not fully optimized for mobile.
-**Resolution:** Dedicated mobile UI components.
-
----
-
- 
+* Government education platform integration
+* International credential exchange
+* Enterprise verification services
+* Mobile credential wallet
+* National educational trust network
