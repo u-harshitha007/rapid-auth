@@ -201,24 +201,4 @@ Dashboard not fully optimized for mobile.
 
 ---
 
-# 👨‍💻 Team Members & Roles
-
-## Harshitha – Frontend Developer
-- Student dashboard, Issuer interface, Verifier page, QR integration
-
-## Kirthi JC – Smart Contract Engineer (now: Crypto Engine)
-- SHA-256 / HMAC verification logic, security architecture
-
-## Chandan – Security Engineer
-- STRIDE threat modeling, rate limiting, audit trail, documentation
-
-## Pavan – Backend Developer
-- API development, storage layer, email simulation, system integration
-
----
-
-<h1 align="center">🏆 RapidAuth 2026</h1>
-
-<p align="center">
-  Built for the <strong>Algorand Global Hackathon</strong>
-</p>
+ 
